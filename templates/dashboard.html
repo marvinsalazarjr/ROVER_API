@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dashboard — UMG Basic Rover 2.0</title>
+    <link rel="stylesheet" href="/static/css/estilo.css">
+</head>
+<body>
+<div class="fondo"></div>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+    <div class="navbar-brand">🚀 UMG Basic Rover 2.0</div>
+    <div class="navbar-user">
+        <span id="navNickname">...</span>
+        <span id="navRol" class="badge-rol">...</span>
+        <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
+    </div>
+</nav>
+
+<div class="dashboard">
+
+    <!-- Alerta -->
+    <div id="alerta" class="alerta"></div>
+
+    <!-- Bienvenida -->
+    <div style="margin:20px 0">
+        <h1 style="font-size:22px">
+            👋 Bienvenido, <span id="nombreUsuario" style="color:var(--primary)"></span>
+        </h1>
+        <p style="color:var(--text-dim);font-size:13px;margin-top:4px">
+            Panel de control — <span id="fechaHoy"></span>
+        </p>
+    </div>
+
+    <!-- Stats (solo admin) -->
+    <div class="stats-grid" id="statsGrid" style="display:none">
+        <div class="stat-card">
+            <div class="numero" id="statUsuarios">—</div>
+            <div class="etiqueta">Usuarios activos</div>
+        </div>
+        <div class="stat-card">
+            <div class="numero" id="statLogs">—</div>
+            <div class="etiqueta">Acciones registradas</div>
+        </div>
+        <div class="stat-card">
+            <div class="numero" id="statSesiones">—</div>
+            <div class="etiqueta">Sesiones activas</div>
+        </div>
+    </div>
+
+    <!-- Cards de acceso según rol -->
+    <div class="cards" style="margin:24px 0">
+
+        <!-- Admin y Editor -->
+        <div id="cardEditor" style="display:none">
+            <a href="/editor" class="card" style="border-color:#00d4ff">
+                <div class="icono">💻</div>
+                <h3>Editor UMG++</h3>
+                <p>Escribir y enviar comandos al Rover</p>
+            </a>
+        </div>
+
+        <!-- Visualizador -->
+        <div id="cardVerComandos" style="display:none">
+            <a href="/editor" class="card" style="border-color:#7b2ff7">
+                <div class="icono">👁</div>
+                <h3>Ver Comandos</h3>
+                <p>Consultar comandos enviados al Rover</p>
+            </a>
+        </div>
+
+        <!-- Admin y visualizador -->
+        <div id="cardLogs" style="display:none">
+            <a href="#" onclick="mostrarTab('logs');return false;" class="card" style="border-color:#6f42c1">
+                <div class="icono">📋</div>
+                <h3>Ver Logs</h3>
+                <p>Historial de actividad del sistema</p>
+            </a>
+        </div>
+
+        <!-- Solo admin -->
+        <div id="cardUsuarios" style="display:none">
+            <a href="#" onclick="mostrarTab('usuarios');return false;" class="card" style="border-color:#28a745">
+                <div class="icono">👥</div>
+                <h3>Gestionar Usuarios</h3>
+                <p>Cambiar roles y permisos</p>
+            </a>
+        </div>
+
+        <!-- Solo admin -->
+        <div id="cardSesiones" style="display:none">
+            <a href="#" onclick="mostrarTab('sesiones');return false;" class="card" style="border-color:#ffa502">
+                <div class="icono">🔐</div>
+                <h3>Sesiones</h3>
+                <p>Historial de ingresos y salidas</p>
+            </a>
+        </div>
+
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:8px;margin:24px 0 0;flex-wrap:wrap">
+        <button class="tab-btn active" onclick="mostrarTab('logs')" id="btnTabLogs">📋 Logs</button>
+        <button class="tab-btn" onclick="mostrarTab('sesiones')" id="btnTabSesiones" style="display:none">
+            🔐 Sesiones
+        </button>
+        <button class="tab-btn" onclick="mostrarTab('usuarios')" id="btnTabUsuarios" style="display:none">
+            👥 Usuarios
+        </button>
+    </div>
+
+    <!-- TAB LOGS -->
+    <div id="tabLogs">
+        <div style="display:flex;gap:12px;margin:16px 0;flex-wrap:wrap;align-items:flex-end">
+            <div>
+                <label style="font-size:12px;color:var(--text-dim)">Acción</label>
+                <select id="filtroAccion" style="background:#1a1a2e;border:1px solid rgba(0,212,255,0.2);color:#fff;padding:8px 12px;border-radius:6px;font-size:13px">
+                    <option value="">Todas</option>
+                    <option value="LOGIN">LOGIN</option>
+                    <option value="CREAR">CREAR</option>
+                    <option value="EDITAR">EDITAR</option>
+                    <option value="ELIMINAR">ELIMINAR</option>
+                </select>
+            </div>
+            <div>
+                <label style="font-size:12px;color:var(--text-dim)">Usuario</label>
+                <input type="text" id="filtroUsuario" placeholder="Buscar..."
+                    style="background:#1a1a2e;border:1px solid rgba(0,212,255,0.2);color:#fff;padding:8px 12px;border-radius:6px;font-size:13px">
+            </div>
+            <div>
+                <label style="font-size:12px;color:var(--text-dim)">Desde</label>
+                <input type="date" id="filtroDesde"
+                    style="background:#1a1a2e;border:1px solid rgba(0,212,255,0.2);color:#fff;padding:8px 12px;border-radius:6px;font-size:13px">
+            </div>
+            <div>
+                <label style="font-size:12px;color:var(--text-dim)">Hasta</label>
+                <input type="date" id="filtroHasta"
+                    style="background:#1a1a2e;border:1px solid rgba(0,212,255,0.2);color:#fff;padding:8px 12px;border-radius:6px;font-size:13px">
+            </div>
+            <button onclick="cargarLogs()"
+                style="padding:8px 20px;background:linear-gradient(135deg,var(--primary),var(--secondary));border:none;border-radius:6px;color:#fff;font-weight:700;cursor:pointer">
+                🔍 Filtrar
+            </button>
+        </div>
+
+        <div class="tabla-container">
+            <div class="tabla-header">
+                <h2>📋 Registro de actividad</h2>
+                <span id="contadorLogs" style="color:var(--text-dim);font-size:13px"></span>
+            </div>
+            <div style="overflow-x:auto">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Fecha</th>
+                            <th>Usuario</th>
+                            <th>Acción</th>
+                            <th>Descripción</th>
+                            <th>IP</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaLogs">
+                        <tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:30px">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB SESIONES -->
+    <div id="tabSesiones" style="display:none">
+        <div class="tabla-container" style="margin-top:16px">
+            <div class="tabla-header">
+                <h2>🔐 Historial de sesiones</h2>
+            </div>
+            <div style="overflow-x:auto">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Conductor</th>
+                            <th>IP</th>
+                            <th>Ingreso</th>
+                            <th>Salida</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaSesiones">
+                        <tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:30px">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB USUARIOS -->
+    <div id="tabUsuarios" style="display:none">
+        <div class="tabla-container" style="margin-top:16px">
+            <div class="tabla-header">
+                <h2>👥 Gestión de usuarios</h2>
+            </div>
+            <div style="overflow-x:auto">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Nickname</th>
+                            <th>Correo</th>
+                            <th>Rol</th>
+                            <th>Verificado</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaUsuarios">
+                        <tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:30px">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<style>
+.tab-btn {
+    padding: 9px 20px;
+    background: rgba(0,212,255,0.05);
+    border: 1px solid rgba(0,212,255,0.2);
+    color: var(--text-dim);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+.tab-btn.active {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: #000;
+    border-color: transparent;
+}
+</style>
+
+<script src="/static/js/api.js"></script>
+<script>
+requiereAuth();
+
+const usuario = getUsuario();
+
+// Mostrar datos del usuario
+document.getElementById('navNickname').textContent  = usuario.nickname;
+document.getElementById('navRol').textContent        = usuario.rol;
+document.getElementById('nombreUsuario').textContent = usuario.nickname;
+document.getElementById('fechaHoy').textContent      = new Date().toLocaleDateString('es-GT', {
+    weekday:'long', year:'numeric', month:'long', day:'numeric'
+});
+
+// ── MOSTRAR CARDS Y TABS SEGÚN PERMISOS ───────────────────
+const permisos = usuario.permisos;
+
+// Editor UMG++ — admin y editor
+if (permisos.includes('escribir_comandos')) {
+    document.getElementById('cardEditor').style.display = 'block';
+}
+
+// Ver comandos — visualizador
+if (permisos.includes('ver_comandos') && !permisos.includes('escribir_comandos')) {
+    document.getElementById('cardVerComandos').style.display = 'block';
+}
+
+// Logs — todos los que tienen permiso
+if (permisos.includes('ver_logs')) {
+    document.getElementById('cardLogs').style.display = 'block';
+}
+
+// Gestionar usuarios — solo admin
+if (permisos.includes('gestionar_usuarios')) {
+    document.getElementById('cardUsuarios').style.display    = 'block';
+    document.getElementById('cardSesiones').style.display   = 'block';
+    document.getElementById('statsGrid').style.display      = 'grid';
+    document.getElementById('btnTabSesiones').style.display = 'inline-block';
+    document.getElementById('btnTabUsuarios').style.display = 'inline-block';
+    cargarEstadisticas();
+    cargarSesiones();
+    cargarUsuarios();
+}
+
+// Cargar logs al inicio
+cargarLogs();
+
+// ── TABS ──────────────────────────────────────────────────
+function mostrarTab(tab) {
+    ['logs','sesiones','usuarios'].forEach(t => {
+        document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = 'none';
+    });
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).style.display = 'block';
+    document.getElementById('btnTab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+}
+
+// ── CARGAR LOGS ───────────────────────────────────────────
+async function cargarLogs() {
+    const filtros = {
+        accion      : document.getElementById('filtroAccion').value,
+        usuario     : document.getElementById('filtroUsuario').value,
+        fecha_desde : document.getElementById('filtroDesde').value,
+        fecha_hasta : document.getElementById('filtroHasta').value,
+    };
+
+    const res   = await getLogs(filtros);
+    const tbody = document.getElementById('tablaLogs');
+
+    if (!res.ok) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--error);padding:30px">Error al cargar logs</td></tr>`;
+        return;
+    }
+
+    document.getElementById('contadorLogs').textContent = `${res.logs.length} registro(s)`;
+
+    if (res.logs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:30px">No hay logs</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = res.logs.map(log => `
+        <tr>
+            <td style="color:var(--text-dim)">${log.id}</td>
+            <td style="color:var(--text-dim);white-space:nowrap;font-size:12px">
+                ${new Date(log.fecha).toLocaleString('es-GT')}
+            </td>
+            <td><strong>${log.usuario_nombre}</strong></td>
+            <td><span class="badge badge-${log.accion.toLowerCase()}">${log.accion}</span></td>
+            <td style="font-size:12px">${log.descripcion || '—'}</td>
+            <td style="color:var(--text-dim);font-size:12px;font-family:monospace">${log.ip_address || '—'}</td>
+        </tr>
+    `).join('');
+}
+
+// ── CARGAR ESTADÍSTICAS ───────────────────────────────────
+async function cargarEstadisticas() {
+    const res = await getEstadisticas();
+    if (!res.ok) return;
+    const e = res.estadisticas;
+    document.getElementById('statUsuarios').textContent = e.total_usuarios;
+    document.getElementById('statLogs').textContent     = e.total_logs;
+    document.getElementById('statSesiones').textContent = e.sesiones_activas;
+}
+
+// ── CARGAR SESIONES ───────────────────────────────────────
+async function cargarSesiones() {
+    const res   = await getSesiones();
+    const tbody = document.getElementById('tablaSesiones');
+    if (!res.ok) return;
+
+    tbody.innerHTML = res.sesiones.map(s => `
+        <tr>
+            <td style="color:var(--text-dim)">${s.id}</td>
+            <td><strong>${s.nickname}</strong></td>
+            <td style="font-family:monospace;font-size:12px">${s.ip_address || '—'}</td>
+            <td style="font-size:12px;white-space:nowrap">${new Date(s.fecha_ingreso).toLocaleString('es-GT')}</td>
+            <td style="font-size:12px;white-space:nowrap">${s.fecha_salida ? new Date(s.fecha_salida).toLocaleString('es-GT') : '—'}</td>
+            <td>
+                <span class="badge" style="background:${s.activa ? '#00a86b' : '#555'}">
+                    ${s.activa ? 'Activa' : 'Cerrada'}
+                </span>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// ── CARGAR USUARIOS ───────────────────────────────────────
+async function cargarUsuarios() {
+    const res   = await getUsuarios();
+    const tbody = document.getElementById('tablaUsuarios');
+    if (!res.ok) return;
+
+    tbody.innerHTML = res.usuarios.map(u => `
+        <tr>
+            <td style="color:var(--text-dim)">${u.id}</td>
+            <td><strong>${u.nickname}</strong></td>
+            <td style="font-size:12px">${u.correo}</td>
+            <td>
+                <select onchange="cambiarRolUsuario(${u.id}, this.value)"
+                    style="background:#1a1a2e;border:1px solid rgba(0,212,255,0.2);
+                           color:#fff;padding:4px 8px;border-radius:6px;font-size:12px">
+                    <option value="visualizador" ${u.rol==='visualizador'?'selected':''}>Visualizador</option>
+                    <option value="editor"       ${u.rol==='editor'      ?'selected':''}>Editor</option>
+                    <option value="administrador"${u.rol==='administrador'?'selected':''}>Administrador</option>
+                </select>
+            </td>
+            <td>
+                <span class="badge" style="background:${u.verificado ? '#00a86b' : '#ff4757'}">
+                    ${u.verificado ? '✅ Sí' : '❌ No'}
+                </span>
+            </td>
+            <td>
+                <span class="badge" style="background:${u.activo ? '#00a86b' : '#555'}">
+                    ${u.activo ? 'Activo' : 'Inactivo'}
+                </span>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// ── CAMBIAR ROL ───────────────────────────────────────────
+async function cambiarRolUsuario(id, rol) {
+    const res = await cambiarRol(id, rol);
+    if (res.ok) {
+        mostrarAlerta('alerta', '✅ Rol actualizado correctamente', 'exito');
+        cargarUsuarios();
+    } else {
+        mostrarAlerta('alerta', '❌ ' + res.error, 'error');
+    }
+}
+</script>
+</body>
+</html>

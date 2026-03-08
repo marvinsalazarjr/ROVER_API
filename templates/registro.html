@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Registro — UMG Basic Rover 2.0</title>
+    <link rel="stylesheet" href="/static/css/estilo.css">
+</head>
+<body>
+<div class="fondo"></div>
+
+<div class="auth-container">
+    <div class="auth-card">
+
+        <!-- Logo -->
+        <div class="logo">
+            <h1>🚀 UMG Basic Rover 2.0</h1>
+            <p>Crea tu cuenta de Aspirante Conductor</p>
+        </div>
+
+        <!-- Alerta -->
+        <div id="alerta" class="alerta"></div>
+
+        <!-- Formulario -->
+        <form id="formRegistro">
+
+            <!-- Correo -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>📧 Correo electrónico</label>
+                    <input type="email" id="correo" placeholder="tu@correo.com" required>
+                </div>
+                <div class="form-group">
+                    <label>📧 Confirmar correo</label>
+                    <input type="email" id="correo_confirm" placeholder="tu@correo.com" required>
+                </div>
+            </div>
+
+            <!-- Teléfono -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>📱 Teléfono</label>
+                    <input type="tel" id="telefono" placeholder="12345678" required>
+                </div>
+                <div class="form-group">
+                    <label>📱 Confirmar teléfono</label>
+                    <input type="tel" id="telefono_confirm" placeholder="12345678" required>
+                </div>
+            </div>
+
+            <!-- Nickname -->
+            <div class="form-group">
+                <label>🎮 Nickname</label>
+                <input type="text" id="nickname" placeholder="Tu nombre en la plataforma" required>
+            </div>
+
+            <!-- Password -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>🔐 Contraseña</label>
+                    <input type="password" id="password" placeholder="Mínimo 8 caracteres" required>
+                </div>
+                <div class="form-group">
+                    <label>🔐 Confirmar contraseña</label>
+                    <input type="password" id="password_confirm" placeholder="Repite tu contraseña" required>
+                </div>
+            </div>
+
+            <!-- Avatar -->
+            <div class="form-group">
+                <label>🖼️ Avatar (URL de imagen, opcional)</label>
+                <input type="url" id="avatar" placeholder="https://...imagen.jpg">
+            </div>
+
+            <button type="submit" class="btn-primary" id="btnRegistro">
+                Crear cuenta
+            </button>
+        </form>
+
+        <div class="auth-link">
+            ¿Ya tienes cuenta? <a href="/login">Inicia sesión aquí</a>
+        </div>
+
+    </div>
+</div>
+
+<script src="/static/js/api.js"></script>
+<script>
+    // Si ya está logueado, ir al dashboard
+    redirigirSiLogueado();
+
+    document.getElementById('formRegistro').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const btn = document.getElementById('btnRegistro');
+
+        // Validaciones del lado cliente
+        const correo          = document.getElementById('correo').value;
+        const correo_confirm  = document.getElementById('correo_confirm').value;
+        const telefono        = document.getElementById('telefono').value;
+        const telefono_confirm= document.getElementById('telefono_confirm').value;
+        const nickname        = document.getElementById('nickname').value;
+        const password        = document.getElementById('password').value;
+        const password_confirm= document.getElementById('password_confirm').value;
+        const avatar          = document.getElementById('avatar').value;
+
+        if (correo !== correo_confirm) {
+            mostrarAlerta('alerta', '❌ Los correos no coinciden', 'error');
+            return;
+        }
+        if (telefono !== telefono_confirm) {
+            mostrarAlerta('alerta', '❌ Los teléfonos no coinciden', 'error');
+            return;
+        }
+        if (password !== password_confirm) {
+            mostrarAlerta('alerta', '❌ Las contraseñas no coinciden', 'error');
+            return;
+        }
+        if (password.length < 8) {
+            mostrarAlerta('alerta', '❌ La contraseña debe tener mínimo 8 caracteres', 'error');
+            return;
+        }
+
+        btn.disabled    = true;
+        btn.textContent = 'Creando cuenta...';
+
+        try {
+            const res = await registrar({
+                correo, correo_confirm,
+                telefono, telefono_confirm,
+                nickname, password, password_confirm,
+                avatar: avatar || null
+            });
+
+            if (res.ok) {
+                mostrarAlerta('alerta', '✅ ' + res.mensaje, 'exito');
+                document.getElementById('formRegistro').reset();
+                setTimeout(() => window.location.href = '/login', 3000);
+            } else {
+                mostrarAlerta('alerta', '❌ ' + res.error, 'error');
+            }
+        } catch (err) {
+            mostrarAlerta('alerta', '❌ Error de conexión con la API', 'error');
+        } finally {
+            btn.disabled    = false;
+            btn.textContent = 'Crear cuenta';
+        }
+    });
+</script>
+</body>
+</html>

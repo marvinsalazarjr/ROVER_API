@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Editor UMG++ — Basic Rover 2.0</title>
+    <link rel="stylesheet" href="/static/css/estilo.css">
+    <style>
+        .editor-layout {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 16px;
+            height: calc(100vh - 60px);
+            padding: 16px;
+        }
+        .panel {
+            background: rgba(26,26,46,0.9);
+            border: 1px solid rgba(0,212,255,0.2);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .panel-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(0,212,255,0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,212,255,0.05);
+        }
+        .panel-header h3 { font-size: 14px; color: var(--primary); }
+
+        /* ── EDITOR DE CÓDIGO ── */
+        .editor-wrapper {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .line-numbers {
+            padding: 12px 8px;
+            background: rgba(0,0,0,0.3);
+            color: #555;
+            text-align: right;
+            user-select: none;
+            min-width: 40px;
+            line-height: 1.6;
+            overflow: hidden;
+        }
+        #codigoEditor {
+            flex: 1;
+            padding: 12px;
+            background: transparent;
+            border: none;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow-x: auto;
+        }
+
+        /* ── TOOLBAR ── */
+        .toolbar {
+            display: flex;
+            gap: 6px;
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(0,212,255,0.1);
+            flex-wrap: wrap;
+        }
+        .btn-tool {
+            padding: 5px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(0,212,255,0.3);
+            background: rgba(0,212,255,0.05);
+            color: var(--primary);
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-tool:hover { background: rgba(0,212,255,0.15); }
+        .btn-tool.verde  { border-color: #00ff88; color: #00ff88; }
+        .btn-tool.verde:hover  { background: rgba(0,255,136,0.15); }
+        .btn-tool.rojo   { border-color: #ff4757; color: #ff4757; }
+        .btn-tool.rojo:hover   { background: rgba(255,71,87,0.15); }
+        .btn-tool.morado { border-color: #7b2ff7; color: #7b2ff7; }
+        .btn-tool.morado:hover { background: rgba(123,47,247,0.15); }
+
+        /* ── CONSOLA ── */
+        .consola {
+            height: 140px;
+            background: rgba(0,0,0,0.4);
+            border-top: 1px solid rgba(0,212,255,0.1);
+            overflow-y: auto;
+            padding: 8px 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .consola-line { margin: 2px 0; line-height: 1.5; }
+        .consola-line.info    { color: #00d4ff; }
+        .consola-line.exito   { color: #00ff88; }
+        .consola-line.error   { color: #ff4757; }
+        .consola-line.warning { color: #ffa502; }
+
+        /* ── PANEL DERECHO ── */
+        .comandos-lista {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+        .comando-item {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(0,212,255,0.1);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .comando-item:hover { border-color: var(--primary); }
+        .comando-item h4 { font-size: 13px; margin-bottom: 4px; }
+        .comando-item .meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+        .estado-badge {
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+        .estado-pendiente { background: #ffa502; color: #000; }
+        .estado-enviado   { background: #00a86b; color: #fff; }
+        .estado-ejecutado { background: #00d4ff; color: #000; }
+        .estado-error     { background: #ff4757; color: #fff; }
+
+        .keywords { color: #00d4ff; }
+        .commands { color: #7b2ff7; }
+        .numbers  { color: #ff4757; }
+        .parens   { color: #00ff88; }
+
+        @media (max-width: 768px) {
+            .editor-layout { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="fondo"></div>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+    <div class="navbar-brand">🚀 UMG Basic Rover 2.0</div>
+    <div class="navbar-user">
+        <span id="navNickname"></span>
+        <span id="navRol" class="badge-rol"></span>
+        <a href="/dashboard" style="color:var(--primary);text-decoration:none;font-size:13px">Dashboard</a>
+        <button class="btn-logout" onclick="logout()">Salir</button>
+    </div>
+</nav>
+
+<div class="editor-layout">
+
+    <!-- PANEL IZQUIERDO — Editor -->
+    <div class="panel">
+        <div class="panel-header">
+            <h3>📝 Editor UMG++</h3>
+            <div style="display:flex;gap:8px;align-items:center">
+                <input type="text" id="nombreComando" placeholder="Nombre del programa..."
+                    style="background:rgba(0,0,0,0.3);border:1px solid rgba(0,212,255,0.2);
+                           color:#fff;padding:5px 10px;border-radius:6px;font-size:12px;width:200px">
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <button class="btn-tool" onclick="nuevoArchivo()">📄 Nuevo</button>
+            <button class="btn-tool" onclick="insertarPlantilla()">📋 Plantilla</button>
+            <button class="btn-tool verde" onclick="compilar()">⚙️ Compilar</button>
+            <button class="btn-tool morado" onclick="compilarYSimular()">🎮 Simular</button>
+            <button class="btn-tool verde" onclick="guardarComando()" id="btnGuardar">💾 Guardar</button>
+            <button class="btn-tool rojo"  onclick="enviarAlRover()" id="btnEnviar" style="display:none">
+                🚀 Enviar al Rover
+            </button>
+        </div>
+
+        <!-- Editor con números de línea -->
+        <div class="editor-wrapper">
+            <div class="line-numbers" id="lineNumbers">1</div>
+            <textarea id="codigoEditor" spellcheck="false"
+                placeholder="Escribe tu código UMG++ aquí..."></textarea>
+        </div>
+
+        <!-- Consola -->
+        <div style="padding:6px 12px;background:rgba(0,0,0,0.3);border-top:1px solid rgba(0,212,255,0.1)">
+            <span style="font-size:11px;color:var(--text-dim)">📟 Consola</span>
+        </div>
+        <div class="consola" id="consola">
+            <div class="consola-line info">▶ Editor UMG++ listo. Escribe o carga un programa.</div>
+        </div>
+    </div>
+
+    <!-- PANEL DERECHO — Comandos guardados -->
+    <div class="panel">
+        <div class="panel-header">
+            <h3>📦 Mis comandos</h3>
+            <button class="btn-tool" onclick="cargarComandos()" style="padding:3px 10px;font-size:11px">
+                🔄 Actualizar
+            </button>
+        </div>
+
+        <!-- Referencia de instrucciones -->
+        <div style="padding:10px 12px;border-bottom:1px solid rgba(0,212,255,0.1)">
+            <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px">📖 Instrucciones disponibles:</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px">
+                <?php foreach (['avanzar_vlts','avanzar_ctms','avanzar_mts','girar','circulo','cuadrado','rotar','caminar','moonwalk'] as $cmd): ?>
+                <span onclick="insertarComando('<?= $cmd ?>')"
+                    style="background:rgba(123,47,247,0.2);border:1px solid rgba(123,47,247,0.4);
+                           color:#c0a0ff;padding:2px 8px;border-radius:4px;font-size:11px;
+                           cursor:pointer;font-family:monospace">
+                    <?= $cmd ?>
+                </span>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <div class="comandos-lista" id="listaComandos">
+            <div style="text-align:center;color:var(--text-dim);padding:30px;font-size:13px">
+                Cargando comandos...
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL SIMULACIÓN -->
+<div id="modalSim" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);
+     z-index:1000;align-items:center;justify-content:center">
+    <div style="background:#1a1a2e;border:1px solid rgba(0,212,255,0.3);border-radius:12px;
+                padding:24px;width:90%;max-width:500px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:16px">
+            <h3 style="color:var(--primary)">🎮 Simulación del Rover</h3>
+            <button onclick="cerrarSim()" style="background:none;border:none;color:#fff;
+                    font-size:20px;cursor:pointer">✕</button>
+        </div>
+        <canvas id="canvasSim" width="440" height="300"
+            style="background:#0d0d1a;border:1px solid rgba(0,212,255,0.2);border-radius:8px;width:100%">
+        </canvas>
+        <div id="simEstado" style="margin-top:10px;font-size:12px;color:var(--text-dim);text-align:center"></div>
+    </div>
+</div>
+
+<script src="/static/js/api.js"></script>
+<script>
+requiereAuth();
+
+const usuario    = getUsuario();
+let comandoActualId = null;
+
+document.getElementById('navNickname').textContent = usuario.nickname;
+document.getElementById('navRol').textContent      = usuario.rol;
+
+// Mostrar botón enviar solo si tiene permiso
+if (usuario.permisos.includes('enviar_comandos')) {
+    document.getElementById('btnEnviar').style.display = 'inline-block';
+}
+
+// Ocultar guardar si es visualizador
+if (!usuario.permisos.includes('escribir_comandos')) {
+    document.getElementById('btnGuardar').style.display = 'none';
+    document.getElementById('codigoEditor').readOnly    = true;
+    document.getElementById('codigoEditor').placeholder = '👁 Solo lectura — no tienes permiso para escribir comandos';
+}
+
+// ── NÚMEROS DE LÍNEA ──────────────────────────────────────
+const editor = document.getElementById('codigoEditor');
+const lineNums = document.getElementById('lineNumbers');
+
+function actualizarLineas() {
+    const lineas = editor.value.split('\n').length;
+    lineNums.innerHTML = Array.from({length: lineas}, (_, i) => i + 1).join('<br>');
+    lineNums.scrollTop = editor.scrollTop;
+}
+
+editor.addEventListener('input',  actualizarLineas);
+editor.addEventListener('scroll', () => lineNums.scrollTop = editor.scrollTop);
+editor.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+        e.preventDefault();
+        const s = editor.selectionStart;
+        editor.value = editor.value.substring(0, s) + '    ' + editor.value.substring(s);
+        editor.selectionStart = editor.selectionEnd = s + 4;
+        actualizarLineas();
+    }
+});
+
+// ── CONSOLA ───────────────────────────────────────────────
+function log(msg, tipo = 'info') {
+    const consola = document.getElementById('consola');
+    const hora    = new Date().toLocaleTimeString('es-GT');
+    const div     = document.createElement('div');
+    div.className = `consola-line ${tipo}`;
+    div.textContent = `[${hora}] ${msg}`;
+    consola.appendChild(div);
+    consola.scrollTop = consola.scrollHeight;
+}
+
+// ── NUEVO ARCHIVO ─────────────────────────────────────────
+function nuevoArchivo() {
+    if (editor.value && !confirm('¿Descartar cambios?')) return;
+    editor.value = '';
+    document.getElementById('nombreComando').value = '';
+    comandoActualId = null;
+    actualizarLineas();
+    log('Nuevo archivo creado', 'info');
+}
+
+// ── PLANTILLA ─────────────────────────────────────────────
+function insertarPlantilla() {
+    editor.value = `PROGRAM MiPrograma\nBEGIN\n    avanzar_mts(2);\n    girar(1) + avanzar_vlts(3);\n    rotar(1);\nEND.`;
+    actualizarLineas();
+    log('Plantilla cargada', 'info');
+}
+
+// ── INSERTAR COMANDO ──────────────────────────────────────
+function insertarComando(cmd) {
+    const pos = editor.selectionStart;
+    const txt = `    ${cmd}(1);\n`;
+    editor.value = editor.value.substring(0, pos) + txt + editor.value.substring(pos);
+    actualizarLineas();
+    editor.focus();
+}
+
+// ── COMPILAR ──────────────────────────────────────────────
+function compilar() {
+    const codigo = editor.value.trim();
+    log('Iniciando compilación...', 'info');
+
+    if (!codigo) {
+        log('ERROR: El editor está vacío', 'error');
+        return false;
+    }
+
+    // Verificar estructura
+    if (!codigo.includes('PROGRAM')) {
+        log('ERROR: Falta la declaración PROGRAM <nombre>', 'error');
+        return false;
+    }
+    if (!codigo.includes('BEGIN')) {
+        log('ERROR: Falta BEGIN', 'error');
+        return false;
+    }
+    if (!codigo.includes('END')) {
+        log('ERROR: Falta END.', 'error');
+        return false;
+    }
+
+    // Verificar instrucciones válidas
+    const instrucciones = ['avanzar_vlts','avanzar_ctms','avanzar_mts',
+                           'girar','circulo','cuadrado','rotar','caminar','moonwalk'];
+    const lineas = codigo.split('\n');
+    let errores  = 0;
+
+    lineas.forEach((linea, i) => {
+        const l = linea.trim();
+        if (!l || l.startsWith('PROGRAM') || l === 'BEGIN' || l.startsWith('END')) return;
+
+        // Verificar que termina en ;
+        const partes = l.split('+').map(p => p.trim());
+        partes.forEach(parte => {
+            const p = parte.replace(';','').trim();
+            if (!p) return;
+            const esValida = instrucciones.some(ins => p.startsWith(ins));
+            if (!esValida) {
+                log(`ERROR línea ${i+1}: Instrucción desconocida → "${p}"`, 'error');
+                errores++;
+            }
+        });
+    });
+
+    if (errores > 0) {
+        log(`Compilación fallida — ${errores} error(es) encontrado(s)`, 'error');
+        return false;
+    }
+
+    log('✅ Compilación exitosa — Sin errores', 'exito');
+    return true;
+}
+
+// ── SIMULAR ───────────────────────────────────────────────
+function compilarYSimular() {
+    if (!compilar()) return;
+
+    document.getElementById('modalSim').style.display = 'flex';
+    const canvas = document.getElementById('canvasSim');
+    const ctx    = canvas.getContext('2d');
+    const estado = document.getElementById('simEstado');
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Dibujar grid
+    ctx.strokeStyle = 'rgba(0,212,255,0.1)';
+    for (let i = 0; i < canvas.width; i += 20) {
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+    }
+    for (let i = 0; i < canvas.height; i += 20) {
+        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+    }
+
+    // Posición inicial del Rover
+    let x = canvas.width / 2;
+    let y = canvas.height / 2;
+    let angulo = -90; // apunta arriba
+    const escala = 20;
+    const trayectoria = [{x, y}];
+
+    // Parsear instrucciones
+    const lineas = editor.value.split('\n');
+    lineas.forEach(linea => {
+        const l = linea.trim().replace(';','');
+        if (!l || l.startsWith('PROGRAM') || l === 'BEGIN' || l.startsWith('END')) return;
+
+        const partes = l.split('+').map(p => p.trim());
+        partes.forEach(parte => {
+            const match = parte.match(/(\w+)\((-?\d+)\)/);
+            if (!match) return;
+            const [, cmd, nStr] = match;
+            const n = parseInt(nStr);
+
+            if (cmd === 'avanzar_mts' || cmd === 'avanzar_vlts' || cmd === 'avanzar_ctms') {
+                const dist = cmd === 'avanzar_mts' ? n * escala * 2 :
+                             cmd === 'avanzar_ctms' ? n * escala * 0.5 : n * escala;
+                x += Math.cos(angulo * Math.PI/180) * dist;
+                y += Math.sin(angulo * Math.PI/180) * dist;
+                trayectoria.push({x, y});
+            } else if (cmd === 'girar') {
+                angulo += n === 1 ? 90 : n === -1 ? -90 : 0;
+            } else if (cmd === 'rotar') {
+                angulo += n * 360;
+            } else if (cmd === 'circulo') {
+                for (let a = 0; a <= 360; a += 10) {
+                    trayectoria.push({
+                        x: x + Math.cos(a * Math.PI/180) * n * 0.5,
+                        y: y + Math.sin(a * Math.PI/180) * n * 0.5
+                    });
+                }
+            }
+        });
+    });
+
+    // Dibujar trayectoria animada
+    let paso = 0;
+    function animar() {
+        if (paso >= trayectoria.length - 1) {
+            estado.textContent = '✅ Simulación completada';
+            return;
+        }
+        ctx.beginPath();
+        ctx.moveTo(trayectoria[paso].x, trayectoria[paso].y);
+        ctx.lineTo(trayectoria[paso+1].x, trayectoria[paso+1].y);
+        ctx.strokeStyle = '#00d4ff';
+        ctx.lineWidth   = 2;
+        ctx.stroke();
+
+        // Dibujar Rover
+        ctx.fillStyle = '#7b2ff7';
+        ctx.beginPath();
+        ctx.arc(trayectoria[paso+1].x, trayectoria[paso+1].y, 5, 0, Math.PI*2);
+        ctx.fill();
+
+        estado.textContent = `Paso ${paso+1} de ${trayectoria.length-1}`;
+        paso++;
+        setTimeout(animar, 80);
+    }
+
+    // Punto inicial
+    ctx.fillStyle = '#00ff88';
+    ctx.beginPath();
+    ctx.arc(trayectoria[0].x, trayectoria[0].y, 6, 0, Math.PI*2);
+    ctx.fill();
+
+    animar();
+    log('🎮 Iniciando simulación...', 'info');
+}
+
+function cerrarSim() {
+    document.getElementById('modalSim').style.display = 'none';
+}
+
+// ── GUARDAR COMANDO ───────────────────────────────────────
+async function guardarComando() {
+    if (!compilar()) return;
+
+    const nombre = document.getElementById('nombreComando').value.trim();
+    const codigo = editor.value.trim();
+
+    if (!nombre) {
+        log('ERROR: Escribe un nombre para el programa', 'error');
+        return;
+    }
+
+    log('Guardando programa...', 'info');
+
+    const res = await fetch('/api/comandos/', {
+        method  : 'POST',
+        headers : headersAuth(),
+        body    : JSON.stringify({ nombre, codigo })
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+        comandoActualId = data.id;
+        log(`✅ Programa "${nombre}" guardado correctamente`, 'exito');
+        cargarComandos();
+    } else {
+        log(`ERROR: ${data.error}`, 'error');
+    }
+}
+
+// ── ENVIAR AL ROVER ───────────────────────────────────────
+async function enviarAlRover() {
+    if (!comandoActualId) {
+        log('ERROR: Primero guarda el programa', 'error');
+        return;
+    }
+    if (!compilar()) return;
+
+    log('🚀 Enviando al Rover...', 'warning');
+
+    const res  = await fetch(`/api/comandos/${comandoActualId}/enviar`, {
+        method  : 'POST',
+        headers : headersAuth()
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+        log('✅ Comando enviado al Rover correctamente', 'exito');
+        cargarComandos();
+    } else {
+        log(`ERROR: ${data.error}`, 'error');
+    }
+}
+
+// ── CARGAR COMANDOS ───────────────────────────────────────
+async function cargarComandos() {
+    const res  = await fetch('/api/comandos/', { headers: headersAuth() });
+    const data = await res.json();
+    const lista = document.getElementById('listaComandos');
+
+    if (!data.ok || data.comandos.length === 0) {
+        lista.innerHTML = '<div style="text-align:center;color:var(--text-dim);padding:30px;font-size:13px">No hay comandos guardados</div>';
+        return;
+    }
+
+    lista.innerHTML = data.comandos.map(c => `
+        <div class="comando-item" onclick="cargarEnEditor(${c.id}, \`${c.codigo.replace(/`/g,"'")}\`, '${c.nombre}')">
+            <h4>${c.nombre}</h4>
+            <div class="meta">
+                <span>${c.nickname}</span>
+                <span class="estado-badge estado-${c.estado}">${c.estado}</span>
+            </div>
+            <div style="font-size:10px;color:#555;margin-top:4px">
+                ${new Date(c.fecha_creacion).toLocaleString('es-GT')}
+            </div>
+        </div>
+    `).join('');
+}
+
+// ── CARGAR EN EDITOR ──────────────────────────────────────
+function cargarEnEditor(id, codigo, nombre) {
+    editor.value = codigo;
+    document.getElementById('nombreComando').value = nombre;
+    comandoActualId = id;
+    actualizarLineas();
+    log(`📂 Programa "${nombre}" cargado`, 'info');
+}
+
+// Cargar comandos al inicio
+cargarComandos();
+actualizarLineas();
+</script>
+</body>
+</html>

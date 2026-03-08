@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login — UMG Basic Rover 2.0</title>
+    <link rel="stylesheet" href="/static/css/estilo.css">
+</head>
+<body>
+<div class="fondo"></div>
+
+<div class="auth-container">
+    <div class="auth-card">
+
+        <!-- Logo -->
+        <div class="logo">
+            <h1>🚀 UMG Basic Rover 2.0</h1>
+            <p>Plataforma de entrenamiento de conducción</p>
+        </div>
+
+        <!-- Alerta -->
+        <div id="alerta" class="alerta"></div>
+
+        <!-- Formulario -->
+        <form id="formLogin">
+            <div class="form-group">
+                <label>📧 Correo electrónico</label>
+                <input type="email" id="correo" placeholder="tu@correo.com" required>
+            </div>
+            <div class="form-group">
+                <label>🔐 Contraseña</label>
+                <input type="password" id="password" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn-primary" id="btnLogin">
+                Iniciar sesión
+            </button>
+        </form>
+
+        <div class="auth-link" style="margin-top:10px">
+    <a href="/recuperar">¿Olvidaste tu contraseña?</a>
+</div>
+
+        <div class="auth-link">
+            ¿No tienes cuenta? <a href="/registro">Regístrate aquí</a>
+        </div>
+
+    </div>
+</div>
+
+
+<script src="/static/js/api.js"></script>
+<script>
+    // Si ya está logueado, ir al dashboard
+    redirigirSiLogueado();
+
+    document.getElementById('formLogin').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const correo   = document.getElementById('correo').value;
+        const password = document.getElementById('password').value;
+        const btn      = document.getElementById('btnLogin');
+
+        btn.disabled    = true;
+        btn.textContent = 'Iniciando sesión...';
+
+        try {
+            const res = await login(correo, password);
+
+            if (res.ok) {
+                guardarSesion(res.token, res.usuario);
+                mostrarAlerta('alerta', '✅ Bienvenido ' + res.usuario.nickname, 'exito');
+                setTimeout(() => window.location.href = '/dashboard', 1000);
+            } else {
+                mostrarAlerta('alerta', '❌ ' + res.error, 'error');
+                btn.disabled    = false;
+                btn.textContent = 'Iniciar sesión';
+            }
+        } catch (err) {
+            mostrarAlerta('alerta', '❌ Error de conexión con la API', 'error');
+            btn.disabled    = false;
+            btn.textContent = 'Iniciar sesión';
+        }
+    });
+</script>
+</body>
+</html>
