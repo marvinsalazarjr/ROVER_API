@@ -6,34 +6,145 @@
     <title>Registro — UMG Basic Rover 2.0</title>
     <link rel="stylesheet" href="/static/css/estilo.css">
     <style>
-        .overlay-carga { display:none;position:fixed;inset:0;background:rgba(13,13,26,0.92);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:20px; }
-        .overlay-carga.show { display:flex; }
-        .spinner { width:60px;height:60px;border:4px solid rgba(0,212,255,0.2);border-top-color:#00d4ff;border-radius:50%;animation:girar 0.8s linear infinite; }
-        @keyframes girar { to { transform:rotate(360deg); } }
-        .overlay-carga p { color:#00d4ff;font-size:15px;font-weight:600;animation:pulsar 1.5s ease-in-out infinite; }
-        @keyframes pulsar { 0%,100%{opacity:1}50%{opacity:0.4} }
-        .foto-container { display:flex;flex-direction:column;align-items:center;gap:12px;margin:16px 0; }
-        .foto-preview { width:100px;height:100px;border-radius:50%;border:3px solid rgba(0,212,255,0.4);background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:40px;overflow:hidden; }
-        .foto-preview img { width:100%;height:100%;object-fit:cover;border-radius:50%; }
-        .foto-botones { display:flex;gap:8px;flex-wrap:wrap;justify-content:center; }
-        .btn-foto { padding:8px 16px;border-radius:8px;border:1px solid rgba(0,212,255,0.3);background:rgba(0,212,255,0.05);color:#00d4ff;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s; }
-        .btn-foto:hover { background:rgba(0,212,255,0.15); }
-        .camara-modal { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:1000;flex-direction:column;align-items:center;justify-content:center;gap:16px; }
-        .camara-modal.show { display:flex; }
-        #videoStream { width:100%;max-width:400px;border-radius:12px;border:2px solid rgba(0,212,255,0.4); }
-        .camara-controles { display:flex;gap:12px; }
-        .steps { display:flex;justify-content:center;gap:8px;margin-bottom:24px; }
-        .step { width:8px;height:8px;border-radius:50%;background:rgba(0,212,255,0.2);transition:all 0.3s; }
-        .step.active { background:#00d4ff;transform:scale(1.3); }
-        .step.done { background:#00ff88; }
+        /* ── ANIMACIÓN DE CARGA ── */
+        .overlay-carga {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(13,13,26,0.92);
+            z-index: 9999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+        .overlay-carga.show { display: flex; }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(0,212,255,0.2);
+            border-top-color: #00d4ff;
+            border-radius: 50%;
+            animation: girar 0.8s linear infinite;
+        }
+        @keyframes girar { to { transform: rotate(360deg); } }
+
+        .overlay-carga p {
+            color: #00d4ff;
+            font-size: 15px;
+            font-weight: 600;
+            animation: pulsar 1.5s ease-in-out infinite;
+        }
+        @keyframes pulsar {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.4; }
+        }
+
+        /* ── FOTO ── */
+        .foto-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .foto-preview {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 3px solid rgba(0,212,255,0.4);
+            object-fit: cover;
+            background: rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            overflow: hidden;
+        }
+
+        .foto-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .foto-botones {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn-foto {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(0,212,255,0.3);
+            background: rgba(0,212,255,0.05);
+            color: #00d4ff;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-foto:hover { background: rgba(0,212,255,0.15); }
+
+        /* ── CÁMARA ── */
+        .camara-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+        .camara-modal.show { display: flex; }
+
+        #videoStream {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 12px;
+            border: 2px solid rgba(0,212,255,0.4);
+        }
+
+        .camara-controles {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* ── STEPS INDICADOR ── */
+        .steps {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        .step {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(0,212,255,0.2);
+            transition: all 0.3s;
+        }
+        .step.active { background: #00d4ff; transform: scale(1.3); }
+        .step.done   { background: #00ff88; }
     </style>
 </head>
 <body>
 <div class="fondo"></div>
+
+<!-- OVERLAY DE CARGA -->
 <div class="overlay-carga" id="overlayCarga">
     <div class="spinner"></div>
     <p id="mensajeCarga">Creando tu cuenta...</p>
 </div>
+
+<!-- MODAL CÁMARA -->
 <div class="camara-modal" id="camaraModal">
     <video id="videoStream" autoplay playsinline></video>
     <canvas id="canvasCaptura" style="display:none"></canvas>
@@ -42,19 +153,30 @@
         <button class="btn-foto" style="border-color:#ff4757;color:#ff4757" onclick="cerrarCamara()">✕ Cancelar</button>
     </div>
 </div>
+
 <div class="auth-container">
     <div class="auth-card">
+
+        <!-- Logo -->
         <div class="logo">
             <h1>🚀 UMG Basic Rover 2.0</h1>
             <p>Crea tu cuenta de Aspirante Conductor</p>
         </div>
+
+        <!-- Steps -->
         <div class="steps">
             <div class="step active" id="step1"></div>
             <div class="step" id="step2"></div>
             <div class="step" id="step3"></div>
         </div>
+
+        <!-- Alerta -->
         <div id="alerta" class="alerta"></div>
+
+        <!-- Formulario -->
         <form id="formRegistro" enctype="multipart/form-data">
+
+            <!-- FOTO DE PERFIL -->
             <div class="foto-container">
                 <div class="foto-preview" id="fotoPreview">
                     <span id="fotoIcono">👤</span>
@@ -62,85 +184,248 @@
                 </div>
                 <p style="font-size:12px;color:var(--text-dim)">Foto de perfil para tu carnet</p>
                 <div class="foto-botones">
-                    <button type="button" class="btn-foto" onclick="abrirCamara()">📷 Usar camara</button>
-                    <button type="button" class="btn-foto" onclick="document.getElementById('archivoFoto').click()">🖼️ Subir foto</button>
+                    <button type="button" class="btn-foto" onclick="abrirCamara()">
+                        📷 Usar cámara
+                    </button>
+                    <button type="button" class="btn-foto" onclick="document.getElementById('archivoFoto').click()">
+                        🖼️ Subir foto
+                    </button>
                 </div>
-                <input type="file" id="archivoFoto" name="avatar" accept="image/*" style="display:none" onchange="previsualizarFoto(this)">
+                <input type="file" id="archivoFoto" name="avatar" accept="image/*"
+                    style="display:none" onchange="previsualizarFoto(this)">
             </div>
+
+            <!-- Correo -->
             <div class="form-row">
                 <div class="form-group">
-                    <label>📧 Correo electronico</label>
-                    <input type="email" name="correo" id="correo" placeholder="tu@correo.com" required>
+                    <label>📧 Correo electrónico</label>
+                    <input type="email" name="correo" id="correo"
+                        placeholder="tu@correo.com" required>
                 </div>
                 <div class="form-group">
                     <label>📧 Confirmar correo</label>
-                    <input type="email" name="correo_confirm" id="correo_confirm" placeholder="tu@correo.com" required>
+                    <input type="email" name="correo_confirm" id="correo_confirm"
+                        placeholder="tu@correo.com" required>
                 </div>
             </div>
+
+            <!-- Teléfono -->
             <div class="form-row">
                 <div class="form-group">
-                    <label>📱 Telefono</label>
-                    <input type="tel" name="telefono" id="telefono" placeholder="12345678" required>
+                    <label>📱 Teléfono</label>
+                    <input type="tel" name="telefono" id="telefono"
+                        placeholder="12345678" required>
                 </div>
                 <div class="form-group">
-                    <label>📱 Confirmar telefono</label>
-                    <input type="tel" name="telefono_confirm" id="telefono_confirm" placeholder="12345678" required>
+                    <label>📱 Confirmar teléfono</label>
+                    <input type="tel" name="telefono_confirm" id="telefono_confirm"
+                        placeholder="12345678" required>
                 </div>
             </div>
+
+            <!-- Nickname -->
             <div class="form-group">
                 <label>🎮 Nickname</label>
-                <input type="text" name="nickname" id="nickname" placeholder="Tu nombre en la plataforma" required>
+                <input type="text" name="nickname" id="nickname"
+                    placeholder="Tu nombre en la plataforma" required>
             </div>
+
+            <!-- Password -->
             <div class="form-row">
                 <div class="form-group">
-                    <label>🔐 Contrasena</label>
-                    <input type="password" name="password" id="password" placeholder="Minimo 8 caracteres" required>
+                    <label>🔐 Contraseña</label>
+                    <input type="password" name="password" id="password"
+                        placeholder="Mínimo 8 caracteres" required>
                 </div>
                 <div class="form-group">
                     <label>🔐 Confirmar</label>
-                    <input type="password" name="password_confirm" id="password_confirm" placeholder="Repite tu contrasena" required>
+                    <input type="password" name="password_confirm" id="password_confirm"
+                        placeholder="Repite tu contraseña" required>
                 </div>
             </div>
-            <button type="submit" class="btn-primary" id="btnRegistro">Crear cuenta</button>
+
+            <button type="submit" class="btn-primary" id="btnRegistro">
+                Crear cuenta
+            </button>
         </form>
+
         <div class="auth-link">
-            ¿Ya tienes cuenta? <a href="/login">Inicia sesion aqui</a>
+            ¿Ya tienes cuenta? <a href="/login">Inicia sesión aquí</a>
         </div>
+
     </div>
 </div>
+
 <script src="/static/js/api.js"></script>
 <script>
 redirigirSiLogueado();
-let streamCamara=null,fotoCapturada=null;
-const API_URL='http://localhost:5000';
-function actualizarStep(p){document.querySelectorAll('.step').forEach((s,i)=>{s.classList.remove('active','done');if(i<p-1)s.classList.add('done');if(i===p-1)s.classList.add('active');});}
-function mostrarCarga(msg='Procesando...'){document.getElementById('mensajeCarga').textContent=msg;document.getElementById('overlayCarga').classList.add('show');}
-function ocultarCarga(){document.getElementById('overlayCarga').classList.remove('show');}
-async function abrirCamara(){try{streamCamara=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});document.getElementById('videoStream').srcObject=streamCamara;document.getElementById('camaraModal').classList.add('show');actualizarStep(2);}catch(e){mostrarAlerta('alerta','No se pudo acceder a la camara','error');}}
-function cerrarCamara(){if(streamCamara){streamCamara.getTracks().forEach(t=>t.stop());streamCamara=null;}document.getElementById('camaraModal').classList.remove('show');}
-function tomarFoto(){const video=document.getElementById('videoStream'),canvas=document.getElementById('canvasCaptura');canvas.width=video.videoWidth;canvas.height=video.videoHeight;canvas.getContext('2d').drawImage(video,0,0);canvas.toBlob(blob=>{fotoCapturada=new File([blob],'foto.jpg',{type:'image/jpeg'});const url=URL.createObjectURL(blob);document.getElementById('fotoIcono').style.display='none';document.getElementById('fotoImg').src=url;document.getElementById('fotoImg').style.display='block';cerrarCamara();actualizarStep(3);mostrarAlerta('alerta','Foto capturada','exito');},'image/jpeg',0.9);}
-function previsualizarFoto(input){if(input.files&&input.files[0]){const r=new FileReader();r.onload=e=>{document.getElementById('fotoIcono').style.display='none';document.getElementById('fotoImg').src=e.target.result;document.getElementById('fotoImg').style.display='block';actualizarStep(3);};r.readAsDataURL(input.files[0]);fotoCapturada=null;}}
-document.getElementById('formRegistro').addEventListener('submit',async(e)=>{
-e.preventDefault();
-const correo=document.getElementById('correo').value,correo_confirm=document.getElementById('correo_confirm').value,telefono=document.getElementById('telefono').value,telefono_confirm=document.getElementById('telefono_confirm').value,password=document.getElementById('password').value,password_confirm=document.getElementById('password_confirm').value,nickname=document.getElementById('nickname').value;
-if(correo!==correo_confirm){mostrarAlerta('alerta','Los correos no coinciden','error');return;}
-if(telefono!==telefono_confirm){mostrarAlerta('alerta','Los telefonos no coinciden','error');return;}
-if(password!==password_confirm){mostrarAlerta('alerta','Las contrasenas no coinciden','error');return;}
-if(password.length<8){mostrarAlerta('alerta','Minimo 8 caracteres','error');return;}
-mostrarCarga('Creando tu cuenta...');
-try{
-const f=new FormData();
-f.append('correo',correo);f.append('correo_confirm',correo_confirm);f.append('telefono',telefono);f.append('telefono_confirm',telefono_confirm);f.append('password',password);f.append('password_confirm',password_confirm);f.append('nickname',nickname);
-if(fotoCapturada){f.append('avatar',fotoCapturada);}else{const a=document.getElementById('archivoFoto');if(a.files[0])f.append('avatar',a.files[0]);}
-setTimeout(()=>mostrarCarga('Generando tu carnet...'),1500);
-setTimeout(()=>mostrarCarga('Enviando correo...'),3000);
-const res=await fetch(`${API_URL}/api/auth/registro`,{method:'POST',body:f});
-const data=await res.json();
-ocultarCarga();
-if(data.ok){mostrarAlerta('alerta',data.mensaje,'exito');document.getElementById('formRegistro').reset();document.getElementById('fotoIcono').style.display='block';document.getElementById('fotoImg').style.display='none';setTimeout(()=>window.location.href='/login',4000);}
-else{mostrarAlerta('alerta',data.error,'error');}
-}catch(err){ocultarCarga();mostrarAlerta('alerta','Error de conexion','error');}
+
+let streamCamara  = null;
+let fotoCapturada = null;
+const API_URL     = 'http://localhost:5001';
+
+// ── STEPS ─────────────────────────────────────────────────
+function actualizarStep(paso) {
+    document.querySelectorAll('.step').forEach((s, i) => {
+        s.classList.remove('active', 'done');
+        if (i < paso - 1) s.classList.add('done');
+        if (i === paso - 1) s.classList.add('active');
+    });
+}
+
+// ── OVERLAY DE CARGA ──────────────────────────────────────
+function mostrarCarga(msg = 'Procesando...') {
+    document.getElementById('mensajeCarga').textContent = msg;
+    document.getElementById('overlayCarga').classList.add('show');
+}
+
+function ocultarCarga() {
+    document.getElementById('overlayCarga').classList.remove('show');
+}
+
+// ── CÁMARA ────────────────────────────────────────────────
+async function abrirCamara() {
+    try {
+        streamCamara = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user' }
+        });
+        document.getElementById('videoStream').srcObject = streamCamara;
+        document.getElementById('camaraModal').classList.add('show');
+        actualizarStep(2);
+    } catch (e) {
+        mostrarAlerta('alerta', '❌ No se pudo acceder a la cámara. Intenta subir una foto.', 'error');
+    }
+}
+
+function cerrarCamara() {
+    if (streamCamara) {
+        streamCamara.getTracks().forEach(t => t.stop());
+        streamCamara = null;
+    }
+    document.getElementById('camaraModal').classList.remove('show');
+}
+
+function tomarFoto() {
+    const video  = document.getElementById('videoStream');
+    const canvas = document.getElementById('canvasCaptura');
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+
+    canvas.toBlob(blob => {
+        fotoCapturada = new File([blob], 'foto_camara.jpg', { type: 'image/jpeg' });
+
+        // Previsualizar
+        const url = URL.createObjectURL(blob);
+        document.getElementById('fotoIcono').style.display = 'none';
+        document.getElementById('fotoImg').src = url;
+        document.getElementById('fotoImg').style.display = 'block';
+
+        cerrarCamara();
+        actualizarStep(3);
+        mostrarAlerta('alerta', '✅ Foto capturada correctamente', 'exito');
+    }, 'image/jpeg', 0.9);
+}
+
+// ── PREVISUALIZAR FOTO SUBIDA ─────────────────────────────
+function previsualizarFoto(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            document.getElementById('fotoIcono').style.display = 'none';
+            document.getElementById('fotoImg').src = e.target.result;
+            document.getElementById('fotoImg').style.display = 'block';
+            actualizarStep(3);
+        };
+        reader.readAsDataURL(input.files[0]);
+        fotoCapturada = null; // usar el archivo del input
+    }
+}
+
+// ── ENVIAR FORMULARIO ─────────────────────────────────────
+document.getElementById('formRegistro').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const correo          = document.getElementById('correo').value;
+    const correo_confirm  = document.getElementById('correo_confirm').value;
+    const telefono        = document.getElementById('telefono').value;
+    const telefono_confirm= document.getElementById('telefono_confirm').value;
+    const password        = document.getElementById('password').value;
+    const password_confirm= document.getElementById('password_confirm').value;
+    const nickname        = document.getElementById('nickname').value;
+
+    // Validaciones cliente
+    if (correo !== correo_confirm) {
+        mostrarAlerta('alerta', '❌ Los correos no coinciden', 'error');
+        return;
+    }
+    if (telefono !== telefono_confirm) {
+        mostrarAlerta('alerta', '❌ Los teléfonos no coinciden', 'error');
+        return;
+    }
+    if (password !== password_confirm) {
+        mostrarAlerta('alerta', '❌ Las contraseñas no coinciden', 'error');
+        return;
+    }
+    if (password.length < 8) {
+        mostrarAlerta('alerta', '❌ La contraseña debe tener mínimo 8 caracteres', 'error');
+        return;
+    }
+
+    // Mostrar animación de carga
+    mostrarCarga('Creando tu cuenta...');
+
+    try {
+        // Usar FormData para enviar foto
+        const formData = new FormData();
+        formData.append('correo',           correo);
+        formData.append('correo_confirm',   correo_confirm);
+        formData.append('telefono',         telefono);
+        formData.append('telefono_confirm', telefono_confirm);
+        formData.append('password',         password);
+        formData.append('password_confirm', password_confirm);
+        formData.append('nickname',         nickname);
+
+        // Adjuntar foto
+        if (fotoCapturada) {
+            formData.append('avatar', fotoCapturada);
+        } else {
+            const archivoInput = document.getElementById('archivoFoto');
+            if (archivoInput.files[0]) {
+                formData.append('avatar', archivoInput.files[0]);
+            }
+        }
+
+        // Simular pasos de carga
+        setTimeout(() => mostrarCarga('Generando tu carnet...'), 1500);
+        setTimeout(() => mostrarCarga('Enviando correo de verificación...'), 3000);
+
+        const res  = await fetch(`${API_URL}/api/auth/registro`, {
+            method: 'POST',
+            body  : formData
+            // NO pongas Content-Type, el navegador lo pone automático con boundary
+        });
+        const data = await res.json();
+
+        ocultarCarga();
+
+        if (data.ok) {
+            mostrarAlerta('alerta', '✅ ' + data.mensaje, 'exito');
+            document.getElementById('formRegistro').reset();
+            document.getElementById('fotoIcono').style.display = 'block';
+            document.getElementById('fotoImg').style.display   = 'none';
+            setTimeout(() => window.location.href = '/login', 4000);
+        } else {
+            mostrarAlerta('alerta', '❌ ' + data.error, 'error');
+        }
+
+    } catch (err) {
+        ocultarCarga();
+        mostrarAlerta('alerta', '❌ Error de conexión con la API', 'error');
+    }
 });
+
+// Actualizar step al inicio
 actualizarStep(1);
 </script>
 </body>
