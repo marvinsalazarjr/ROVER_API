@@ -1,3 +1,4 @@
+import os
 import jwt
 import datetime
 import secrets
@@ -9,79 +10,134 @@ from models.log import Log
 
 auth_bp = Blueprint('auth', __name__)
 
-def enviar_correo_verificacion(mail, correo, nickname, token):
+# ── ENVIAR CORREO DE VERIFICACIÓN ─────────────────────────
+def enviar_correo_verificacion(mail, correo, nickname, token, ruta_carnet=None):
     url = f"{Config.BASE_URL}/api/auth/verificar/{token}"
     msg = Message(
-        subject = '✅ Verifica tu cuenta — UMG Basic Rover 2.0',
+        subject    = '✅ Verifica tu cuenta — UMG Basic Rover 2.0',
         recipients = [correo]
     )
     msg.html = f"""
-    <div style="font-family:Arial;max-width:600px;margin:auto;padding:20px;background:#0d0d1a;color:#fff;border-radius:10px">
+    <div style="font-family:Arial;max-width:600px;margin:auto;padding:20px;
+                background:#0d0d1a;color:#fff;border-radius:10px">
         <h1 style="color:#00d4ff;text-align:center">🚀 UMG Basic Rover 2.0</h1>
         <h2 style="text-align:center">¡Bienvenido, {nickname}!</h2>
         <p style="text-align:center">Haz clic en el botón para verificar tu cuenta:</p>
         <div style="text-align:center;margin:30px 0">
-            <a href="{url}" 
+            <a href="{url}"
                style="background:#00d4ff;color:#000;padding:14px 32px;border-radius:8px;
                       text-decoration:none;font-weight:bold;font-size:16px">
                 ✅ Verificar mi cuenta
             </a>
         </div>
+        <p style="color:#888;text-align:center;font-size:13px">
+            Tu carnet de acceso está adjunto a este correo.
+        </p>
         <p style="color:#888;text-align:center;font-size:12px">
             Si no creaste esta cuenta, ignora este correo.
         </p>
     </div>
     """
+
+    # Adjuntar carnet PDF si existe
+    if ruta_carnet and os.path.exists(ruta_carnet):
+        with open(ruta_carnet, 'rb') as f:
+            msg.attach(
+                filename     = f'carnet_{nickname}.pdf',
+                content_type = 'application/pdf',
+                data         = f.read()
+            )
+
     mail.send(msg)
 
 # ── REGISTRO ──────────────────────────────────────────────
 @auth_bp.route('/registro', methods=['POST'])
 def registro():
-    datos = request.get_json()
+    from werkzeug.utils import secure_filename
+    from utils.carnet import generar_carnet
 
-    campos = ['correo', 'correo_confirm', 'telefono', 'telefono_confirm',
-              'password', 'password_confirm', 'nickname']
-    for campo in campos:
-        if not datos.get(campo):
-            return jsonify({'ok': False, 'error': f'El campo {campo} es requerido'}), 400
+    # Recibir datos del formulario (form-data para poder subir foto)
+    correo           = request.form.get('correo', '')
+    correo_confirm   = request.form.get('correo_confirm', '')
+    telefono         = request.form.get('telefono', '')
+    telefono_confirm = request.form.get('telefono_confirm', '')
+    password         = request.form.get('password', '')
+    password_confirm = request.form.get('password_confirm', '')
+    nickname         = request.form.get('nickname', '')
 
-    if datos['correo'] != datos['correo_confirm']:
+    # Validaciones
+    if not all([correo, correo_confirm, telefono, telefono_confirm,
+                password, password_confirm, nickname]):
+        return jsonify({'ok': False, 'error': 'Todos los campos son requeridos'}), 400
+
+    if correo != correo_confirm:
         return jsonify({'ok': False, 'error': 'Los correos no coinciden'}), 400
 
-    if datos['telefono'] != datos['telefono_confirm']:
+    if telefono != telefono_confirm:
         return jsonify({'ok': False, 'error': 'Los teléfonos no coinciden'}), 400
 
-    if datos['password'] != datos['password_confirm']:
+    if password != password_confirm:
         return jsonify({'ok': False, 'error': 'Las contraseñas no coinciden'}), 400
 
-    if len(datos['password']) < 8:
+    if len(password) < 8:
         return jsonify({'ok': False, 'error': 'La contraseña debe tener mínimo 8 caracteres'}), 400
 
+    # Guardar foto si viene
+    avatar_path = None
+    if 'avatar' in request.files:
+        foto = request.files['avatar']
+        if foto and foto.filename:
+            ext = foto.filename.rsplit('.', 1)[-1].lower()
+            if ext in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
+                carpeta = os.path.join('static', 'uploads', 'avatares')
+                os.makedirs(carpeta, exist_ok=True)
+                nombre  = secure_filename(f"{nickname}_{foto.filename}")
+                ruta    = os.path.join(carpeta, nombre)
+                foto.save(ruta)
+                avatar_path = ruta
+
+    # Crear usuario
     resultado = Usuario.crear(
-        correo   = datos['correo'],
-        telefono = datos['telefono'],
-        password = datos['password'],
-        nickname = datos['nickname'],
-        avatar   = datos.get('avatar')
+        correo   = correo,
+        telefono = telefono,
+        password = password,
+        nickname = nickname,
+        avatar   = avatar_path
     )
 
     if not resultado['ok']:
         return jsonify(resultado), 400
 
+    # Generar carnet PDF
+    ruta_carnet = None
+    try:
+        ruta_carnet = generar_carnet(
+            conductor_id = resultado['id'],
+            nickname     = nickname,
+            correo       = correo,
+            rol          = 'visualizador',
+            avatar       = avatar_path
+        )
+    except Exception as e:
+        print(f"Error generando carnet: {e}")
+
+    # Enviar correo de verificación con carnet adjunto
     try:
         mail = current_app.extensions['mail']
         enviar_correo_verificacion(
             mail,
-            datos['correo'],
-            datos['nickname'],
-            resultado['token']
+            correo,
+            nickname,
+            resultado['token'],
+            ruta_carnet
         )
     except Exception as e:
         print(f"Error enviando correo: {e}")
 
     return jsonify({
-        'ok': True,
-        'mensaje': f"✅ Registro exitoso. Revisa tu correo {datos['correo']} para verificar tu cuenta."
+        'ok'     : True,
+        'mensaje': f"✅ Registro exitoso. Revisa tu correo {correo} para verificar tu cuenta.",
+        'carnet' : ruta_carnet
     }), 201
 
 # ── VERIFICAR CUENTA ──────────────────────────────────────
@@ -90,11 +146,11 @@ def verificar(token):
     resultado = Usuario.verificar_cuenta(token)
     if resultado['ok']:
         return jsonify({
-            'ok': True,
+            'ok'    : True,
             'mensaje': '✅ Cuenta verificada correctamente. Ya puedes iniciar sesión.'
         })
     return jsonify({
-        'ok': False,
+        'ok'   : False,
         'error': 'Token inválido o cuenta ya verificada.'
     }), 400
 
